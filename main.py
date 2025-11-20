@@ -1,6 +1,11 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import ValidationError
+from typing import Any, Dict
+
+from schemas import Reservation
+from database import create_document
 
 app = FastAPI()
 
@@ -19,6 +24,16 @@ def read_root():
 @app.get("/api/hello")
 def hello():
     return {"message": "Hello from the backend API!"}
+
+@app.post("/reservations")
+def create_reservation(payload: Reservation) -> Dict[str, Any]:
+    try:
+        inserted_id = create_document('reservation', payload)
+        return {"status": "ok", "id": inserted_id, "message": "Reservation received"}
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/test")
 def test_database():
